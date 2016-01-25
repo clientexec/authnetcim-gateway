@@ -87,9 +87,18 @@ class PluginAuthnetcim extends GatewayPlugin
             $cPlugin->setAction('charge');
         }
 
+        // The idea was to redirect the customer to create his profile in Authorize.net CIM
+        // However, it is causing more troubles than anything else:
+        // - The redirection is done making use of an error posted in the step 3
+        // - After the redirection, the customer can fill his profile, and then go back to order complete, but will be really without doing the send_account_creation_email
+        // - At the end, the invoice continues unpaid
+        // So, I have found it is better to try to charge the customer even when not having an Authorize.net CIM account.
+        // It leads him to his invoice and with a more clear error message that will lead him to create his Authorize.net CIM account, etc.
+        /*
         if($params['isSignup']){
             return $this->ShowURL($params);
         }
+        */
 
         //Create customer Authnet CIM profile transaction
         $customerProfile = $this->createCustomerProfileTransaction($params, $isRefund);
