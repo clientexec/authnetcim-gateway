@@ -118,6 +118,24 @@ class PluginAuthnetcim extends GatewayPlugin
     }
 
     // Create customer Authnet CIM profile
+    function createFullCustomerProfile($params)
+    {
+        $customerProfile = $this->createCustomerProfile($params);
+        if($customerProfile['error']){
+            return $customerProfile;
+        }
+
+        $customerProfile = $this->createCustomerPaymentProfile($params);
+        if($customerProfile['error']){
+            return $customerProfile;
+        }
+
+        $customerProfile = $this->createCustomerShippingAddress($params);
+
+        return $customerProfile;
+    }
+
+    // Create customer Authnet CIM profile
     function createCustomerProfile($params)
     {
         //Customer Information from CE
@@ -150,6 +168,110 @@ class PluginAuthnetcim extends GatewayPlugin
                     'profile_id'          => $cim->getProfileID(),
                     'payment_profile_id'  => 0,
                     'shipping_profile_id' => 0
+                );
+            }else{
+                return array(
+                    'error'  => true,
+                    'detail' => $cim->getResponseSummary()
+                );
+            }
+        }catch(AuthnetCIMException $e){
+            return array(
+                'error'  => true,
+                'detail' => $e
+            );
+        }
+    }
+
+    // Create customer Authnet CIM payment profile
+    function createCustomerPaymentProfile($params)
+    {
+        // Get customer Authnet CIM profile
+        $customerProfile = $this->getCustomerProfile($params);
+        if($customerProfile['error']){
+            return $customerProfile;
+        }
+
+        //Authorize.net CIM Credentials from CE plugin
+        $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
+        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
+        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+
+        try{
+            $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+            $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
+            if($params['userFirstName'] != '') $cim->setParameter('billToFirstName', $params['userFirstName']);
+            if($params['userLastName'] != '') $cim->setParameter('billToLastName', $params['userLastName']);
+            if($params['userOrganization'] != '') $cim->setParameter('billToCompany', $params['userOrganization']);
+            if($params['userAddress'] != '') $cim->setParameter('billToAddress', $params['userAddress']);
+            if($params['userCity'] != '') $cim->setParameter('billToCity', $params['userCity']);
+            if($params['userState'] != '') $cim->setParameter('billToState', $params['userState']);
+            if($params['userZipcode'] != '') $cim->setParameter('billToZip', $params['userZipcode']);
+            if($params['userCountry'] != '') $cim->setParameter('billToCountry', $params['userCountry']);
+            if($params['userPhone'] != '') $cim->setParameter('billToPhoneNumber', $params['userPhone']);
+            if($params['userPhone'] != '') $cim->setParameter('billToFaxNumber', $params['userPhone']);
+            if($params['userCCNumber'] != '') $cim->setParameter('cardNumber', $params['userCCNumber']);
+            if($params['cc_exp_year'] != '' && $params['cc_exp_month'] != '') $cim->setParameter('expirationDate', $params['cc_exp_year'].'-'.$params['cc_exp_month']);
+            $cim->createCustomerPaymentProfile();
+
+            if($cim->isSuccessful() || $cim->getCode() == 'E00039'){
+                return array(
+                    'error'               => false,
+                    'profile_id'          => $cim->getProfileID(),
+                    'payment_profile_id'  => $cim->getPaymentProfileId(),
+                    'shipping_profile_id' => $cim->getCustomerAddressId()
+                );
+            }else{
+                return array(
+                    'error'  => true,
+                    'detail' => $cim->getResponseSummary()
+                );
+            }
+        }catch(AuthnetCIMException $e){
+            return array(
+                'error'  => true,
+                'detail' => $e
+            );
+        }
+    }
+
+    // Create customer Authnet CIM shipping address
+    function createCustomerShippingAddress($params)
+    {
+        // Get customer Authnet CIM profile
+        $customerProfile = $this->getCustomerProfile($params);
+        if($customerProfile['error']){
+            return $customerProfile;
+        }
+
+        //Authorize.net CIM Credentials from CE plugin
+        $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
+        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
+        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+
+        try{
+            $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+            $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
+            if($params['userFirstName'] != '') $cim->setParameter('shipToFirstName', $params['userFirstName']);
+            if($params['userLastName'] != '') $cim->setParameter('shipToLastName', $params['userLastName']);
+            if($params['userOrganization'] != '') $cim->setParameter('shipToCompany', $params['userOrganization']);
+            if($params['userAddress'] != '') $cim->setParameter('shipToAddress', $params['userAddress']);
+            if($params['userCity'] != '') $cim->setParameter('shipToCity', $params['userCity']);
+            if($params['userState'] != '') $cim->setParameter('shipToState', $params['userState']);
+            if($params['userZipcode'] != '') $cim->setParameter('shipToZip', $params['userZipcode']);
+            if($params['userCountry'] != '') $cim->setParameter('shipToCountry', $params['userCountry']);
+            if($params['userPhone'] != '') $cim->setParameter('shipToPhoneNumber', $params['userPhone']);
+            if($params['userPhone'] != '') $cim->setParameter('shipToFaxNumber', $params['userPhone']);
+            $cim->createCustomerShippingAddress();
+
+            if($cim->isSuccessful() || $cim->getCode() == 'E00039'){
+                return array(
+                    'error'               => false,
+                    'profile_id'          => $cim->getProfileID(),
+                    'payment_profile_id'  => $cim->getPaymentProfileId(),
+                    'shipping_profile_id' => $cim->getCustomerAddressId()
                 );
             }else{
                 return array(

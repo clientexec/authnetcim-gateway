@@ -700,7 +700,13 @@ class AuthnetCIM
 
         $this->profileId        = (int) $xml->customerProfileId;
         if($this->profileId == 0 && isset($xml->profile->customerProfileId)){
-            $this->profileId = (int) $xml->profile->customerProfileId;
+            $this->profileId    = (int) $xml->profile->customerProfileId;
+        }
+        if($this->profileId == 0 && $this->code == 'E00039'){
+            $str = strip_tags($this->text);
+            //A duplicate record with ID 12345678 already exists.
+            preg_match('!\d+!', $str, $matches);
+            $this->profileId    = (int) $matches[0];
         }
 
         $this->addressId        = (int) $xml->customerAddressId;
