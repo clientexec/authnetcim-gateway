@@ -472,7 +472,14 @@ class PluginAuthnetcim extends GatewayPlugin
         // Get customer Authnet CIM profile
         $customerProfile = $this->getCustomerProfile($params);
         if($customerProfile['error']){
-            return $customerProfile;
+            return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+                <html xmlns="http://www.w3.org/1999/xhtml">
+                    <head>
+                        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+                        <title>Untitled Document</title>
+                    </head>
+                    <body>'.$customerProfile['detail'].'</body>
+                </html>';
         }
 
         //Authorize.net CIM Credentials from CE plugin
