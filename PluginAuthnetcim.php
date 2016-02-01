@@ -498,7 +498,6 @@ class PluginAuthnetcim extends GatewayPlugin
 
 
         // Get the Hosted Profile Page
-        $returnURL = str_replace("&", "&amp;", $returnURL);
         $hosted_Profile_Return_Url_Text = 'Continue to confirmation page.';
         $hosted_Profile_Card_Code_Required = 'true';
         $hosted_Profile_Billing_Address_Required = 'true';

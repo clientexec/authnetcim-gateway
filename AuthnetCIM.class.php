@@ -670,7 +670,7 @@ class AuthnetCIM
     public function setParameter($field = '', $value = null)
     {
         $field = (is_string($field)) ? trim($field) : $field;
-        $value = (is_string($value)) ? trim($value) : $value;
+        $value = (is_string($value)) ? trim(str_replace("&", "&amp;", $value)) : $value;
         if(!is_string($field)){
             trigger_error(__METHOD__ . '() arg 1 must be a string: ' . gettype($field) . ' given.', E_USER_ERROR);
         }
