@@ -333,6 +333,15 @@ class PluginAuthnetcim extends GatewayPlugin
                     'shipping_profile_id' => $cim->getCustomerAddressId()
                 );
             }else{
+                // If the profileID, paymentProfileId, or shippingAddressId for this request is not valid for this merchant, reset the id and try again.
+                if($cim->getCode() == 'E00040'){
+                    $user = new User($params['CustomerID']);
+                    $user->updateCustomTag('Billing-Profile-ID', serialize(array('authnetcim' => '')));
+                    $user->save();
+
+                    return $this->getCustomerProfile($params);
+                }
+
                 return array(
                     'error'  => true,
                     'detail' => $cim->getResponseSummary()
