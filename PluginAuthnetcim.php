@@ -124,13 +124,8 @@ class PluginAuthnetcim extends GatewayPlugin
         if($customerProfile['error']){
             return $customerProfile;
         }
-
+        $params['Billing-Profile-ID'] = $customerProfile['profile_id'];
         $customerProfile = $this->createCustomerPaymentProfile($params);
-        if($customerProfile['error']){
-            return $customerProfile;
-        }
-
-        $customerProfile = $this->createCustomerShippingAddress($params);
 
         return $customerProfile;
     }
@@ -162,13 +157,9 @@ class PluginAuthnetcim extends GatewayPlugin
                 $user = new User($params['CustomerID']);
                 $user->updateCustomTag('Billing-Profile-ID', serialize(array('authnetcim' => $cim->getProfileID())));
                 $user->save();
+                $params['Billing-Profile-ID'] = $cim->getProfileID();
 
-                return array(
-                    'error'               => false,
-                    'profile_id'          => $cim->getProfileID(),
-                    'payment_profile_id'  => 0,
-                    'shipping_profile_id' => 0
-                );
+                return $this->createCustomerShippingAddress($params);
             }else{
                 return array(
                     'error'  => true,
@@ -186,10 +177,13 @@ class PluginAuthnetcim extends GatewayPlugin
     // Create customer Authnet CIM payment profile
     function createCustomerPaymentProfile($params)
     {
-        // Get customer Authnet CIM profile
-        $customerProfile = $this->getCustomerProfile($params);
-        if($customerProfile['error']){
-            return $customerProfile;
+        if(!isset($params['Billing-Profile-ID'])){
+            // Get customer Authnet CIM profile
+            $customerProfile = $this->getCustomerProfile($params);
+            if($customerProfile['error']){
+                return $customerProfile;
+            }
+            $params['Billing-Profile-ID'] = $customerProfile['profile_id'];
         }
 
         //Authorize.net CIM Credentials from CE plugin
@@ -200,7 +194,7 @@ class PluginAuthnetcim extends GatewayPlugin
 
         try{
             $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
-            $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
+            $cim->setParameter('customerProfileId', $params['Billing-Profile-ID']);
             if($params['userFirstName'] != '') $cim->setParameter('billToFirstName', $params['userFirstName']);
             if($params['userLastName'] != '') $cim->setParameter('billToLastName', $params['userLastName']);
             if($params['userOrganization'] != '') $cim->setParameter('billToCompany', $params['userOrganization']);
@@ -239,10 +233,13 @@ class PluginAuthnetcim extends GatewayPlugin
     // Create customer Authnet CIM shipping address
     function createCustomerShippingAddress($params)
     {
-        // Get customer Authnet CIM profile
-        $customerProfile = $this->getCustomerProfile($params);
-        if($customerProfile['error']){
-            return $customerProfile;
+        if(!isset($params['Billing-Profile-ID'])){
+            // Get customer Authnet CIM profile
+            $customerProfile = $this->getCustomerProfile($params);
+            if($customerProfile['error']){
+                return $customerProfile;
+            }
+            $params['Billing-Profile-ID'] = $customerProfile['profile_id'];
         }
 
         //Authorize.net CIM Credentials from CE plugin
@@ -253,7 +250,7 @@ class PluginAuthnetcim extends GatewayPlugin
 
         try{
             $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
-            $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
+            $cim->setParameter('customerProfileId', $params['Billing-Profile-ID']);
             if($params['userFirstName'] != '') $cim->setParameter('shipToFirstName', $params['userFirstName']);
             if($params['userLastName'] != '') $cim->setParameter('shipToLastName', $params['userLastName']);
             if($params['userOrganization'] != '') $cim->setParameter('shipToCompany', $params['userOrganization']);
@@ -473,10 +470,17 @@ class PluginAuthnetcim extends GatewayPlugin
         $tempUser = new User($params['CustomerID']);
 
         //Customer Information from CE
-        $params['userID']        = "CE" . $tempUser->getId();
-        $params['userEmail']     = $tempUser->getEmail();
-        $params['userFirstName'] = $tempUser->getFirstName();
-        $params['userLastName']  = $tempUser->getLastName();
+        $params['userID']           = "CE" . $tempUser->getId();
+        $params['userEmail']        = $tempUser->getEmail();
+        $params['userFirstName']    = $tempUser->getFirstName();
+        $params['userLastName']     = $tempUser->getLastName();
+        $params['userOrganization'] = $tempUser->getOrganization();
+        $params['userAddress']      = $tempUser->getAddress();
+        $params['userCity']         = $tempUser->getCity();
+        $params['userState']        = $tempUser->getState();
+        $params['userZipcode']      = $tempUser->getZipCode();
+        $params['userCountry']      = $tempUser->getCountry();
+        $params['userPhone']        = $tempUser->getPhone();
 
         // Get customer Authnet CIM profile
         $customerProfile = $this->getCustomerProfile($params);
