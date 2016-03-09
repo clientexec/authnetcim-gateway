@@ -155,6 +155,8 @@ class PluginAuthnetcim extends GatewayPlugin
             // Get the profile ID returned from the request. Also if fails because of a duplicate record already exists.
             if($cim->isSuccessful() || $cim->getCode() == 'E00039'){
                 $user = new User($params['CustomerID']);
+                $Billing_Profile_ID = '';
+                $user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID);
                 $user->updateCustomTag('Billing-Profile-ID', serialize(array('authnetcim' => $cim->getProfileID())));
                 $user->save();
                 $params['Billing-Profile-ID'] = $cim->getProfileID();
@@ -320,6 +322,8 @@ class PluginAuthnetcim extends GatewayPlugin
             if($cim->isSuccessful()){
 
                 $user = new User($params['CustomerID']);
+                $Billing_Profile_ID = '';
+                $user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID);
                 $user->updateCustomTag('Billing-Profile-ID', serialize(array('authnetcim' => $cim->getProfileID())));
                 $user->save();
 
@@ -333,6 +337,8 @@ class PluginAuthnetcim extends GatewayPlugin
                 // If the profileID, paymentProfileId, or shippingAddressId for this request is not valid for this merchant, reset the id and try again.
                 if($cim->getCode() == 'E00040'){
                     $user = new User($params['CustomerID']);
+                    $Billing_Profile_ID = '';
+                    $user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID);
                     $user->updateCustomTag('Billing-Profile-ID', serialize(array('authnetcim' => '')));
                     $user->save();
 
