@@ -154,12 +154,20 @@ class PluginAuthnetcim extends GatewayPlugin
 
             // Get the profile ID returned from the request. Also if fails because of a duplicate record already exists.
             if($cim->isSuccessful() || $cim->getCode() == 'E00039'){
-                $user = new User($params['CustomerID']);
+                $profile_id = $cim->getProfileID();
                 $Billing_Profile_ID = '';
-                $user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID);
-                $user->updateCustomTag('Billing-Profile-ID', serialize(array('authnetcim' => $cim->getProfileID())));
+                $profile_id_array = array();
+                $user = new User($params['CustomerID']);
+                if($user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID) && $Billing_Profile_ID != ''){
+                    $profile_id_array = unserialize($Billing_Profile_ID);
+                }
+                if(!is_array($profile_id_array)){
+                    $profile_id_array = array();
+                }
+                $profile_id_array['authnetcim'] = $profile_id;
+                $user->updateCustomTag('Billing-Profile-ID', serialize($profile_id_array));
                 $user->save();
-                $params['Billing-Profile-ID'] = $cim->getProfileID();
+                $params['Billing-Profile-ID'] = $profile_id;
 
                 return $this->createCustomerShippingAddress($params);
             }else{
@@ -297,6 +305,7 @@ class PluginAuthnetcim extends GatewayPlugin
 
         $profile_id == '';
         $Billing_Profile_ID = '';
+        $profile_id_array = array();
         $user = new User($params['CustomerID']);
         if($user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID) && $Billing_Profile_ID != ''){
             $profile_id_array = unserialize($Billing_Profile_ID);
@@ -320,26 +329,29 @@ class PluginAuthnetcim extends GatewayPlugin
             $cim->setParameter('customerProfileId', $profile_id);
             $cim->getCustomerProfile();
             if($cim->isSuccessful()){
-
-                $user = new User($params['CustomerID']);
-                $Billing_Profile_ID = '';
-                $user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID);
-                $user->updateCustomTag('Billing-Profile-ID', serialize(array('authnetcim' => $cim->getProfileID())));
+                $profile_id = $cim->getProfileID();
+                if(!is_array($profile_id_array)){
+                    $profile_id_array = array();
+                }
+                $profile_id_array['authnetcim'] = $profile_id;
+                $user->updateCustomTag('Billing-Profile-ID', serialize($profile_id_array));
                 $user->save();
 
                 return array(
                     'error'               => false,
-                    'profile_id'          => $cim->getProfileID(),
+                    'profile_id'          => $profile_id,
                     'payment_profile_id'  => $cim->getPaymentProfileId(),
                     'shipping_profile_id' => $cim->getCustomerAddressId()
                 );
             }else{
                 // If the profileID, paymentProfileId, or shippingAddressId for this request is not valid for this merchant, reset the id and try again.
                 if($cim->getCode() == 'E00040'){
-                    $user = new User($params['CustomerID']);
-                    $Billing_Profile_ID = '';
-                    $user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID);
-                    $user->updateCustomTag('Billing-Profile-ID', serialize(array('authnetcim' => '')));
+                    if(is_array($profile_id_array)){
+                        unset($profile_id_array['authnetcim']);
+                    }else{
+                        $profile_id_array = array();
+                    }
+                    $user->updateCustomTag('Billing-Profile-ID', serialize($profile_id_array));
                     $user->save();
 
                     return $this->getCustomerProfile($params);
