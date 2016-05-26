@@ -103,8 +103,8 @@ class PluginAuthnetcim extends GatewayPlugin
         //Create customer Authnet CIM profile transaction
         $customerProfile = $this->createCustomerProfileTransaction($params, $isRefund);
         if($customerProfile['error']){
-            $cPlugin->PaymentRejected($this->user->lang("There was an error performing this operation. ".$customerProfile['detail']));
-            return $this->user->lang("There was an error performing this operation. ".$customerProfile['detail']);
+            $cPlugin->PaymentRejected($this->user->lang("There was an error performing this operation.").' '.$customerProfile['detail']);
+            return $this->user->lang("There was an error performing this operation.").' '.$customerProfile['detail'];
         }else{
             if($isRefund){
                 $cPlugin->PaymentAccepted($customerProfile['amount'], "Authorize.Net CIM refund of {$customerProfile['amount']} was successfully processed.", $customerProfile['transaction_ID']);
