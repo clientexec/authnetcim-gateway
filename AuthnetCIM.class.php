@@ -62,13 +62,13 @@ class AuthnetCIM
     {
         $this->login    = trim($login);
         $this->transkey = trim($transkey);
-        if(empty($this->login) || empty($this->transkey)){
-            trigger_error('You have not configured your ' . __CLASS__ . '() login credentials properly.', E_USER_ERROR);
+        if (empty($this->login) || empty($this->transkey)) {
+            trigger_error('You have not configured your '.__CLASS__.'() login credentials properly.', E_USER_ERROR);
         }
 
         $this->test = (bool) $test;
         $subdomain  = ($this->test) ? 'apitest' : 'api';
-        $this->url = 'https://' . $subdomain . '.authorize.net/xml/v1/request.api';
+        $this->url = 'https://'.$subdomain.'.authorize.net/xml/v1/request.api';
 
         $this->params['customerType']     = 'individual';
         $this->params['validationMode']   = 'liveMode';
@@ -78,25 +78,25 @@ class AuthnetCIM
 
     public function __destruct()
     {
-        if(isset($this->ch)){
+        if (isset($this->ch)) {
             curl_close($this->ch);
         }
     }
 
     public function __toString()
     {
-        if(!$this->params){
+        if (!$this->params) {
             return (string) $this;
         }
-        $output  = '<table summary="Authnet Results" id="authnet">' . "\n";
-        $output .= '<tr>' . "\n\t\t" . '<th colspan="2"><b>Outgoing Parameters</b></th>' . "\n" . '</tr>' . "\n";
-        foreach($this->params as $key => $value){
-            $output .= "\t" . '<tr>' . "\n\t\t" . '<td><b>' . $key . '</b></td>';
-            $output .= '<td>' . $value . '</td>' . "\n" . '</tr>' . "\n";
+        $output  = '<table summary="Authnet Results" id="authnet">'."\n";
+        $output .= '<tr>'."\n\t\t".'<th colspan="2"><b>Outgoing Parameters</b></th>'."\n".'</tr>'."\n";
+        foreach ($this->params as $key => $value) {
+            $output .= "\t".'<tr>'."\n\t\t".'<td><b>'.$key.'</b></td>';
+            $output .= '<td>'.$value.'</td>'."\n".'</tr>'."\n";
         }
 
-        $output .= '</table>' . "\n";
-        if(!empty($this->xml)){
+        $output .= '</table>'."\n";
+        if (!empty($this->xml)) {
             $output .= 'XML: ';
             $output .= htmlentities($this->xml);
         }
@@ -114,19 +114,19 @@ class AuthnetCIM
     	curl_setopt($this->ch, CURLOPT_POST, 1);
     	curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, 0);
         $this->response = curl_exec($this->ch);
-        if($this->response){
+        if ($this->response) {
             $this->parseResults();
-            if($this->resultCode === 'Ok'){
+            if ($this->resultCode === 'Ok') {
                 $this->success = true;
                 $this->error   = false;
-            }else{
+            } else {
                 $this->success = false;
                 $this->error   = true;
             }
             curl_close($this->ch);
             unset($this->ch);
-        }else{
-            throw new AuthnetCIMException('Connection error: ' . curl_error($this->ch) . ' (' . curl_errno($this->ch) . ')', self::EXCEPTION_CURL);
+        } else {
+            throw new AuthnetCIMException('Connection error: '.curl_error($this->ch).' ('.curl_errno($this->ch).')', self::EXCEPTION_CURL);
         }
     }
 
@@ -135,55 +135,55 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <createCustomerProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
             $this->xml .= '
                           <profile>
-                              <merchantCustomerId>'. $this->params['merchantCustomerId'].'</merchantCustomerId>
-                              <description>'. $this->params['description'].'</description>
-                              <email>'. $this->params['email'] .'</email>';
+                              <merchantCustomerId>'.$this->params['merchantCustomerId'].'</merchantCustomerId>
+                              <description>'.$this->params['description'].'</description>
+                              <email>'.$this->params['email'].'</email>';
 
-        if($use_profiles == true){
+        if ($use_profiles == true) {
             $this->xml .= '
                               <paymentProfiles>
-                                  <customerType>'. $this->params['customerType'].'</customerType>
+                                  <customerType>'.$this->params['customerType'].'</customerType>
                                   <billTo>
-                                      <firstName>'. $this->params['billToFirstName'].'</firstName>
-                                      <lastName>'. $this->params['billToLastName'].'</lastName>
-                                      <company>'. $this->params['billToCompany'] .'</company>
-                                      <address>'. $this->params['billToAddress'] .'</address>
-                                      <city>'. $this->params['billToCity'] .'</city>
-                                      <state>'. $this->params['billToState'] .'</state>
-                                      <zip>'. $this->params['billToZip'] .'</zip>
-                                      <country>'. $this->params['billToCountry'] .'</country>
-                                      <phoneNumber>'. $this->params['billToPhoneNumber'].'</phoneNumber>
-                                      <faxNumber>'. $this->params['billToFaxNumber'].'</faxNumber>
+                                      <firstName>'.$this->params['billToFirstName'].'</firstName>
+                                      <lastName>'.$this->params['billToLastName'].'</lastName>
+                                      <company>'.$this->params['billToCompany'].'</company>
+                                      <address>'.$this->params['billToAddress'].'</address>
+                                      <city>'.$this->params['billToCity'].'</city>
+                                      <state>'.$this->params['billToState'].'</state>
+                                      <zip>'.$this->params['billToZip'].'</zip>
+                                      <country>'.$this->params['billToCountry'].'</country>
+                                      <phoneNumber>'.$this->params['billToPhoneNumber'].'</phoneNumber>
+                                      <faxNumber>'.$this->params['billToFaxNumber'].'</faxNumber>
                                   </billTo>
                                   <payment>';
-            if($type === 'credit'){
+            if ($type === 'credit') {
                 $this->xml .= '
                                       <creditCard>
-                                          <cardNumber>'. $this->params['cardNumber'].'</cardNumber>
+                                          <cardNumber>'.$this->params['cardNumber'].'</cardNumber>
                                           <expirationDate>'.$this->params['expirationDate'].'</expirationDate>
                                       </creditCard>';
-            }elseif($type === 'check'){
+            } elseif ($type === 'check') {
                 $this->xml .= '
                                       <bankAccount>
                                           <accountType>'.$this->params['accountType'].'</accountType>
                                           <nameOnAccount>'.$this->params['nameOnAccount'].'</nameOnAccount>
-                                          <echeckType>'. $this->params['echeckType'].'</echeckType>
-                                          <bankName>'. $this->params['bankName'].'</bankName>
+                                          <echeckType>'.$this->params['echeckType'].'</echeckType>
+                                          <bankName>'.$this->params['bankName'].'</bankName>
                                           <routingNumber>'.$this->params['routingNumber'].'</routingNumber>
                                           <accountNumber>'.$this->params['accountNumber'].'</accountNumber>
                                       </bankAccount>
                                       <driversLicense>
-                                          <dlState>'. $this->params['dlState'].'</dlState>
-                                          <dlNumber>'. $this->params['dlNumber'].'</dlNumber>
+                                          <dlState>'.$this->params['dlState'].'</dlState>
+                                          <dlNumber>'.$this->params['dlNumber'].'</dlNumber>
                                           <dlDateOfBirth>'.$this->params['dlDateOfBirth'].'</dlDateOfBirth>
                                       </driversLicense>';
             }
@@ -191,16 +191,16 @@ class AuthnetCIM
                                   </payment>
                               </paymentProfiles>
                               <shipToList>
-                                  <firstName>'. $this->params['shipToFirstName'].'</firstName>
-                                  <lastName>'. $this->params['shipToLastName'].'</lastName>
-                                  <company>'. $this->params['shipToCompany'] .'</company>
-                                  <address>'. $this->params['shipToAddress'] .'</address>
-                                  <city>'. $this->params['shipToCity'] .'</city>
-                                  <state>'. $this->params['shipToState'] .'</state>
-                                  <zip>'. $this->params['shipToZip'] .'</zip>
-                                  <country>'. $this->params['shipToCountry'] .'</country>
-                                  <phoneNumber>'. $this->params['shipToPhoneNumber'].'</phoneNumber>
-                                  <faxNumber>'. $this->params['shipToFaxNumber'].'</faxNumber>
+                                  <firstName>'.$this->params['shipToFirstName'].'</firstName>
+                                  <lastName>'.$this->params['shipToLastName'].'</lastName>
+                                  <company>'.$this->params['shipToCompany'].'</company>
+                                  <address>'.$this->params['shipToAddress'].'</address>
+                                  <city>'.$this->params['shipToCity'].'</city>
+                                  <state>'.$this->params['shipToState'].'</state>
+                                  <zip>'.$this->params['shipToZip'].'</zip>
+                                  <country>'.$this->params['shipToCountry'].'</country>
+                                  <phoneNumber>'.$this->params['shipToPhoneNumber'].'</phoneNumber>
+                                  <faxNumber>'.$this->params['shipToFaxNumber'].'</faxNumber>
                               </shipToList>';
         }
             $this->xml .= '
@@ -214,56 +214,56 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <createCustomerPaymentProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           <paymentProfile>
-                              <customerType>'. $this->params['customerType'].'</customerType>
+                              <customerType>'.$this->params['customerType'].'</customerType>
                               <billTo>
-                                  <firstName>'. $this->params['billToFirstName'].'</firstName>
-                                  <lastName>'. $this->params['billToLastName'].'</lastName>
-                                  <company>'. $this->params['billToCompany'] .'</company>
-                                  <address>'. $this->params['billToAddress'] .'</address>
-                                  <city>'. $this->params['billToCity'] .'</city>
-                                  <state>'. $this->params['billToState'] .'</state>
-                                  <zip>'. $this->params['billToZip'] .'</zip>
-                                  <country>'. $this->params['billToCountry'] .'</country>
-                                  <phoneNumber>'. $this->params['billToPhoneNumber'].'</phoneNumber>
-                                  <faxNumber>'. $this->params['billToFaxNumber'].'</faxNumber>
+                                  <firstName>'.$this->params['billToFirstName'].'</firstName>
+                                  <lastName>'.$this->params['billToLastName'].'</lastName>
+                                  <company>'.$this->params['billToCompany'].'</company>
+                                  <address>'.$this->params['billToAddress'].'</address>
+                                  <city>'.$this->params['billToCity'].'</city>
+                                  <state>'.$this->params['billToState'].'</state>
+                                  <zip>'.$this->params['billToZip'].'</zip>
+                                  <country>'.$this->params['billToCountry'].'</country>
+                                  <phoneNumber>'.$this->params['billToPhoneNumber'].'</phoneNumber>
+                                  <faxNumber>'.$this->params['billToFaxNumber'].'</faxNumber>
                               </billTo>
                               <payment>';
-        if($type === 'credit'){
+        if ($type === 'credit') {
             $this->xml .= '
                                   <creditCard>
-                                      <cardNumber>'. $this->params['cardNumber'].'</cardNumber>
+                                      <cardNumber>'.$this->params['cardNumber'].'</cardNumber>
                                       <expirationDate>'.$this->params['expirationDate'].'</expirationDate>
                                   </creditCard>';
-        }elseif($type === 'check'){
+        } elseif ($type === 'check') {
             $this->xml .= '
                                   <bankAccount>
-                                      <accountType>'. $this->params['accountType'].'</accountType>
+                                      <accountType>'.$this->params['accountType'].'</accountType>
                                       <nameOnAccount>'.$this->params['nameOnAccount'].'</nameOnAccount>
-                                      <echeckType>'. $this->params['echeckType'].'</echeckType>
-                                      <bankName>'. $this->params['bankName'].'</bankName>
+                                      <echeckType>'.$this->params['echeckType'].'</echeckType>
+                                      <bankName>'.$this->params['bankName'].'</bankName>
                                       <routingNumber>'.$this->params['routingNumber'].'</routingNumber>
                                       <accountNumber>'.$this->params['accountNumber'].'</accountNumber>
                                   </bankAccount>
                                   <driversLicense>
-                                      <dlState>'. $this->params['dlState'] .'</dlState>
-                                      <dlNumber>'. $this->params['dlNumber'].'</dlNumber>
+                                      <dlState>'.$this->params['dlState'].'</dlState>
+                                      <dlNumber>'.$this->params['dlNumber'].'</dlNumber>
                                       <dlDateOfBirth>'.$this->params['dlDateOfBirth'].'</dlDateOfBirth>
                                   </driversLicense>';
         }
         $this->xml .= '
                               </payment>
                           </paymentProfile>
-                          <validationMode>'. $this->params['validationMode'].'</validationMode>
+                          <validationMode>'.$this->params['validationMode'].'</validationMode>
                       </createCustomerPaymentProfileRequest>';
         $this->process();
     }
@@ -273,26 +273,26 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <createCustomerShippingAddressRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           <address>
-                              <firstName>'. $this->params['shipToFirstName'].'</firstName>
-                              <lastName>'. $this->params['shipToLastName'].'</lastName>
-                              <company>'. $this->params['shipToCompany'] .'</company>
-                              <address>'. $this->params['shipToAddress'] .'</address>
-                              <city>'. $this->params['shipToCity'] .'</city>
-                              <state>'. $this->params['shipToState'] .'</state>
-                              <zip>'. $this->params['shipToZip'] .'</zip>
-                              <country>'. $this->params['shipToCountry'] .'</country>
-                              <phoneNumber>'. $this->params['shipToPhoneNumber'].'</phoneNumber>
-                              <faxNumber>'. $this->params['shipToFaxNumber'].'</faxNumber>
+                              <firstName>'.$this->params['shipToFirstName'].'</firstName>
+                              <lastName>'.$this->params['shipToLastName'].'</lastName>
+                              <company>'.$this->params['shipToCompany'].'</company>
+                              <address>'.$this->params['shipToAddress'].'</address>
+                              <city>'.$this->params['shipToCity'].'</city>
+                              <state>'.$this->params['shipToState'].'</state>
+                              <zip>'.$this->params['shipToZip'].'</zip>
+                              <country>'.$this->params['shipToCountry'].'</country>
+                              <phoneNumber>'.$this->params['shipToPhoneNumber'].'</phoneNumber>
+                              <faxNumber>'.$this->params['shipToFaxNumber'].'</faxNumber>
                           </address>
                       </createCustomerShippingAddressRequest>';
         $this->process();
@@ -301,45 +301,45 @@ class AuthnetCIM
     public function createCustomerProfileTransaction($type = 'profileTransAuthCapture')
     {
         $types = array('profileTransAuthCapture', 'profileTransCaptureOnly','profileTransAuthOnly','profileTransRefund');
-        if(!in_array($type, $types)){
+        if (!in_array($type, $types)) {
             trigger_error('createCustomerProfileTransaction() parameter must be"profileTransAuthCapture", "profileTransCaptureOnly", "profileTransAuthOnly", "profileTransRefund", or empty', E_USER_ERROR);
         }
 
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <createCustomerProfileTransactionRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
                           <transaction>
-                              <' . $type . '>
-                                  <amount>'. $this->params['amount'] .'</amount>';
-        if(isset($this->params['taxAmount'])){
+                              <'.$type.'>
+                                  <amount>'.$this->params['amount'].'</amount>';
+        if (isset($this->params['taxAmount'])) {
             $this->xml .= '
                                   <tax>
-                                       <amount>'. $this->params['taxAmount'].'</amount>
-                                       <name>'. $this->params['taxName'] .'</name>
+                                       <amount>'.$this->params['taxAmount'].'</amount>
+                                       <name>'.$this->params['taxName'].'</name>
                                        <description>'.$this->params['taxDescription'].'</description>
                                   </tax>';
         }
-        if(isset($this->params['shipAmount'])){
+        if (isset($this->params['shipAmount'])) {
             $this->xml .= '
                                   <shipping>
-                                       <amount>'. $this->params['shipAmount'].'</amount>
-                                       <name>'. $this->params['shipName'] .'</name>
+                                       <amount>'.$this->params['shipAmount'].'</amount>
+                                       <name>'.$this->params['shipName'].'</name>
                                        <description>'.$this->params['shipDescription'].'</description>
                                   </shipping>';
         }
-        if(isset($this->params['dutyAmount'])){
+        if (isset($this->params['dutyAmount'])) {
             $this->xml .= '
                                   <duty>
-                                       <amount>'. $this->params['dutyAmount'].'</amount>
-                                       <name>'. $this->params['dutyName'] .'</name>
+                                       <amount>'.$this->params['dutyAmount'].'</amount>
+                                       <name>'.$this->params['dutyName'].'</name>
                                        <description>'.$this->params['dutyDescription'].'</description>
                                   </duty>';
         }
@@ -347,33 +347,33 @@ class AuthnetCIM
                                   <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                                   <customerPaymentProfileId>'.$this->params['customerPaymentProfileId'].'</customerPaymentProfileId>
                                   <customerShippingAddressId>'.$this->params['customerShippingAddressId'].'</customerShippingAddressId>';
-        if(isset($this->params['transId'])){
+        if (isset($this->params['transId'])) {
             $this->xml .= '
-                                  <transId>'. $this->params['transId'].'</transId>';
+                                  <transId>'.$this->params['transId'].'</transId>';
         }
-        if(isset($this->params['orderInvoiceNumber'])){
+        if (isset($this->params['orderInvoiceNumber'])) {
             $this->xml .= '
                                   <order>
                                        <invoiceNumber>'.$this->params['invoiceNumber'].'</invoiceNumber>
                                        <description>'.$this->params['description'].'</description>
                                   </order>';
         }
-        if($type != "profileTransRefund"){
+        if ($type != "profileTransRefund") {
             $this->xml .= '
-                                  <taxExempt>'. $this->params['taxExempt'].'</taxExempt>
+                                  <taxExempt>'.$this->params['taxExempt'].'</taxExempt>
                                   <recurringBilling>'.$this->params['recurringBilling'].'</recurringBilling>';
         }
 
-        if(isset($this->params['cardCode'])){
+        if (isset($this->params['cardCode'])) {
             $this->xml .= '
-                                  <cardCode>'. $this->params['cardCode'].'</cardCode>';
+                                  <cardCode>'.$this->params['cardCode'].'</cardCode>';
         }
-        if(isset($this->params['orderInvoiceNumber']) && isset($this->params['approvalCode'])){
+        if (isset($this->params['orderInvoiceNumber']) && isset($this->params['approvalCode'])) {
             $this->xml .= '
-                                  <approvalCode>'. $this->params['approvalCode'].'</approvalCode>';
+                                  <approvalCode>'.$this->params['approvalCode'].'</approvalCode>';
         }
         $this->xml .= '
-                              </' . $type . '>
+                              </'.$type.'>
                           </transaction>
                       </createCustomerProfileTransactionRequest>';
         $this->process();
@@ -384,15 +384,15 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <deleteCustomerProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                       </deleteCustomerProfileRequest>';
         $this->process();
     }
@@ -402,15 +402,15 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <deleteCustomerPaymentProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           <customerPaymentProfileId>'.$this->params['customerPaymentProfileId'].'</customerPaymentProfileId>
                       </deleteCustomerPaymentProfileRequest>';
         $this->process();
@@ -421,16 +421,16 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <deleteCustomerShippingAddressRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
-                          <customerAddressId>'. $this->params['customerAddressId'].'</customerAddressId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
+                          <customerAddressId>'.$this->params['customerAddressId'].'</customerAddressId>
                       </deleteCustomerShippingAddressRequest>';
         $this->process();
     }
@@ -440,19 +440,19 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <getHostedProfilePageRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           <hostedProfileSettings>';
-        if(!empty($this->params['hostedProfileReturnUrl'])){
+        if (!empty($this->params['hostedProfileReturnUrl'])) {
             $this->xml .= '
                               <setting>
                                   <settingName>hostedProfileReturnUrl</settingName>
                                   <settingValue>'.$this->params['hostedProfileReturnUrl'].'</settingValue>
                               </setting>';
         }
-        if(!empty($this->params['hostedProfileIFrameCommunicatorUrl'])){
+        if (!empty($this->params['hostedProfileIFrameCommunicatorUrl'])) {
             $this->xml .= '
                               <setting>
                                   <settingName>hostedProfileIFrameCommunicatorUrl</settingName>
@@ -486,10 +486,10 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <getCustomerProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                       </getCustomerProfileRequest>';
         $this->process();
     }
@@ -499,10 +499,10 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <getCustomerPaymentProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           <customerPaymentProfileId>'.$this->params['customerPaymentProfileId'].'</customerPaymentProfileId>
                       </getCustomerPaymentProfileRequest>';
         $this->process();
@@ -513,8 +513,8 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <getCustomerShippingAddressRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>
                               <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                               <customerAddressId>'.$this->params['customerAddressId'].'</customerAddressId>
@@ -527,18 +527,18 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <updateCustomerProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
                           <profile>
                               <merchantCustomerId>'.$this->params['merchantCustomerId'].'</merchantCustomerId>
-                              <description>'. $this->params['description'].'</description>
-                              <email>'. $this->params['email'] .'</email>
+                              <description>'.$this->params['description'].'</description>
+                              <email>'.$this->params['email'].'</email>
                               <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           </profile>
                       </updateCustomerProfileRequest>';
@@ -550,49 +550,49 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <updateCustomerPaymentProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           <paymentProfile>
-                              <customerType>'. $this->params['customerType'].'</customerType>
+                              <customerType>'.$this->params['customerType'].'</customerType>
                               <billTo>
-                                  <firstName>'. $this->params['firstName'].'</firstName>
-                                  <lastName>'. $this->params['lastName'] .'</lastName>
-                                  <company>'. $this->params['company'] .'</company>
-                                  <address>'. $this->params['address'] .'</address>
-                                  <city>'. $this->params['city'] .'</city>
-                                  <state>'. $this->params['state'] .'</state>
-                                  <zip>'. $this->params['zip'] .'</zip>
-                                  <country>'. $this->params['country'] .'</country>
-                                  <phoneNumber>'. $this->params['phoneNumber'].'</phoneNumber>
-                                  <faxNumber>'. $this->params['faxNumber'].'</faxNumber>
+                                  <firstName>'.$this->params['firstName'].'</firstName>
+                                  <lastName>'.$this->params['lastName'].'</lastName>
+                                  <company>'.$this->params['company'].'</company>
+                                  <address>'.$this->params['address'].'</address>
+                                  <city>'.$this->params['city'].'</city>
+                                  <state>'.$this->params['state'].'</state>
+                                  <zip>'.$this->params['zip'].'</zip>
+                                  <country>'.$this->params['country'].'</country>
+                                  <phoneNumber>'.$this->params['phoneNumber'].'</phoneNumber>
+                                  <faxNumber>'.$this->params['faxNumber'].'</faxNumber>
                               </billTo>
                               <payment>';
-        if($type === 'credit'){
+        if ($type === 'credit') {
             $this->xml .= '
                                   <creditCard>
-                                      <cardNumber>'. $this->params['cardNumber'].'</cardNumber>
+                                      <cardNumber>'.$this->params['cardNumber'].'</cardNumber>
                                       <expirationDate>'.$this->params['expirationDate'].'</expirationDate>
                                   </creditCard>';
-        }elseif($type === 'check'){
+        } elseif ($type === 'check') {
             $this->xml .= '
                                   <bankAccount>
                                       <accountType>'.$this->params['accountType'].'</accountType>
                                       <nameOnAccount>'.$this->params['nameOnAccount'].'</nameOnAccount>
-                                      <echeckType>'. $this->params['echeckType'].'</echeckType>
-                                      <bankName>'. $this->params['bankName'].'</bankName>
+                                      <echeckType>'.$this->params['echeckType'].'</echeckType>
+                                      <bankName>'.$this->params['bankName'].'</bankName>
                                       <routingNumber>'.$this->params['routingNumber'].'</routingNumber>
                                       <accountNumber>'.$this->params['accountNumber'].'</accountNumber>
                                   </bankAccount>
                                   <driversLicense>
-                                      <dlState>'. $this->params['dlState'].'</dlState>
-                                      <dlNumber>'. $this->params['dlNumber'].'</dlNumber>
+                                      <dlState>'.$this->params['dlState'].'</dlState>
+                                      <dlNumber>'.$this->params['dlNumber'].'</dlNumber>
                                       <dlDateOfBirth>'.$this->params['dlDateOfBirth'].'</dlDateOfBirth>
                                   </driversLicense>';
         }
@@ -609,26 +609,26 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <updateCustomerShippingAddressRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>';
-        if(!empty($this->params['refId'])){
+        if (!empty($this->params['refId'])) {
             $this->xml .= '
-                          <refId>'. $this->params['refId'] .'</refId>';
+                          <refId>'.$this->params['refId'].'</refId>';
         }
         $this->xml .= '
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           <address>
-                              <firstName>'. $this->params['firstName'] .'</firstName>
-                              <lastName>'. $this->params['lastName'] .'</lastName>
-                              <company>'. $this->params['company'] .'</company>
-                              <address>'. $this->params['address'] .'</address>
-                              <city>'. $this->params['city'] .'</city>
-                              <state>'. $this->params['state'] .'</state>
-                              <zip>'. $this->params['zip'] .'</zip>
-                              <country>'. $this->params['country'] .'</country>
-                              <phoneNumber>'. $this->params['phoneNumber'].'</phoneNumber>
-                              <faxNumber>'. $this->params['faxNumber'] .'</faxNumber>
+                              <firstName>'.$this->params['firstName'].'</firstName>
+                              <lastName>'.$this->params['lastName'].'</lastName>
+                              <company>'.$this->params['company'].'</company>
+                              <address>'.$this->params['address'].'</address>
+                              <city>'.$this->params['city'].'</city>
+                              <state>'.$this->params['state'].'</state>
+                              <zip>'.$this->params['zip'].'</zip>
+                              <country>'.$this->params['country'].'</country>
+                              <phoneNumber>'.$this->params['phoneNumber'].'</phoneNumber>
+                              <faxNumber>'.$this->params['faxNumber'].'</faxNumber>
                               <customerAddressId>'.$this->params['customerAddressId'].'</customerAddressId>
                           </address>
                       </updateCustomerShippingAddressRequest>';
@@ -640,13 +640,13 @@ class AuthnetCIM
         $this->xml = '<?xml version="1.0" encoding="utf-8"?>
                       <validateCustomerPaymentProfileRequest xmlns="AnetApi/xml/v1/schema/AnetApiSchema.xsd">
                           <merchantAuthentication>
-                              <name>' . $this->login . '</name>
-                              <transactionKey>' . $this->transkey . '</transactionKey>
+                              <name>'.$this->login.'</name>
+                              <transactionKey>'.$this->transkey.'</transactionKey>
                           </merchantAuthentication>
-                          <customerProfileId>'. $this->params['customerProfileId'].'</customerProfileId>
+                          <customerProfileId>'.$this->params['customerProfileId'].'</customerProfileId>
                           <customerPaymentProfileId>'.$this->params['customerPaymentProfileId'].'</customerPaymentProfileId>
-                          <customerShippingAddressId>'. $this->params['customerShippingAddressId'].'</customerShippingAddressId>
-                          <validationMode>'. $this->params['validationMode'].'</validationMode>
+                          <customerShippingAddressId>'.$this->params['customerShippingAddressId'].'</customerShippingAddressId>
+                          <validationMode>'.$this->params['validationMode'].'</validationMode>
                       </validateCustomerPaymentProfileRequest>';
         $this->process();
     }
@@ -654,9 +654,9 @@ class AuthnetCIM
     private function getLineItems()
     {
         $tempXml = '';
-        foreach($this->items as $item){
-            foreach($item as $key => $value){
-                $tempXml .= "\t" . '<' . $key . '>' . $value . '</' . $key . '>' . "\n";
+        foreach ($this->items as $item) {
+            foreach ($item as $key => $value) {
+                $tempXml .= "\t".'<'.$key.'>'.$value.'</'.$key.'>'."\n";
             }
         }
         return $tempXml;
@@ -664,24 +664,31 @@ class AuthnetCIM
 
     public function setLineItem($itemId, $name, $description, $quantity, $unitprice,$taxable = 'false')
     {
-        $this->items[] = array('itemId' => $itemId, 'name' => $name, 'description' => $description, 'quantity' => $quantity, 'unitPrice' => $unitprice, 'taxable' => $taxable);
+        $this->items[] = array(
+            'itemId'      => $itemId,
+            'name'        => $name,
+            'description' => $description,
+            'quantity'    => $quantity,
+            'unitPrice'   => $unitprice,
+            'taxable'     => $taxable
+        );
     }
 
     public function setParameter($field = '', $value = null)
     {
         $field = (is_string($field)) ? trim($field) : $field;
         $value = (is_string($value)) ? trim(str_replace("&", "&amp;", $value)) : $value;
-        if(!is_string($field)){
-            trigger_error(__METHOD__ . '() arg 1 must be a string: ' . gettype($field) . ' given.', E_USER_ERROR);
+        if (!is_string($field)) {
+            trigger_error(__METHOD__.'() arg 1 must be a string: '.gettype($field).' given.', E_USER_ERROR);
         }
-        if(empty($field)){
-            trigger_error(__METHOD__ . '() requires a parameter field to be named.', E_USER_ERROR);
+        if (empty($field)) {
+            trigger_error(__METHOD__.'() requires a parameter field to be named.', E_USER_ERROR);
         }
-        if(!is_string($value) && !is_numeric($value) && !is_bool($value)){
-            trigger_error(__METHOD__ . '() arg 2 (' . $field . ') must be a string, integer, or boolean value: ' . gettype($value) . ' given.', E_USER_ERROR);
+        if (!is_string($value) && !is_numeric($value) && !is_bool($value)) {
+            trigger_error(__METHOD__.'() arg 2 ('.$field.') must be a string, integer, or boolean value: '.gettype($value).' given.', E_USER_ERROR);
         }
-        if($value === '' || is_null($value)){
-            trigger_error(__METHOD__ . '() parameter "value" is empty or missing (parameter: ' . $field . ').', E_USER_NOTICE);
+        if ($value === '' || is_null($value)) {
+            trigger_error(__METHOD__.'() parameter "value" is empty or missing (parameter: '.$field.').', E_USER_NOTICE);
         }
         $this->params[$field] = $value;
     }
@@ -699,10 +706,10 @@ class AuthnetCIM
         $this->profileToken     = (string) $xml->token;
 
         $this->profileId        = (int) $xml->customerProfileId;
-        if($this->profileId == 0 && isset($xml->profile->customerProfileId)){
+        if ($this->profileId == 0 && isset($xml->profile->customerProfileId)) {
             $this->profileId    = (int) $xml->profile->customerProfileId;
         }
-        if($this->profileId == 0 && $this->code == 'E00039'){
+        if ($this->profileId == 0 && $this->code == 'E00039') {
             $str = strip_tags($this->text);
             //A duplicate record with ID 12345678 already exists.
             preg_match('!\d+!', $str, $matches);
@@ -710,12 +717,12 @@ class AuthnetCIM
         }
 
         $this->addressId        = (int) $xml->customerAddressId;
-        if($this->addressId == 0 && isset($xml->profile->shipToList->customerAddressId)){
+        if ($this->addressId == 0 && isset($xml->profile->shipToList->customerAddressId)) {
             $this->addressId = (int) $xml->profile->shipToList->customerAddressId;
         }
 
         $this->paymentProfileId = (int) $xml->customerPaymentProfileId;
-        if($this->paymentProfileId == 0 && isset($xml->profile->paymentProfiles->customerPaymentProfileId)){
+        if ($this->paymentProfileId == 0 && isset($xml->profile->paymentProfiles->customerPaymentProfileId)) {
             $this->paymentProfileId = (int) $xml->profile->paymentProfiles->customerPaymentProfileId;
         }
 
@@ -735,7 +742,7 @@ class AuthnetCIM
 
     public function getResponseSummary()
     {
-        return 'Response code: ' . $this->getCode() . ' Message: ' . $this->getResponse();
+        return 'Response code: '.$this->getCode().' Message: '.$this->getResponse();
     }
 
     public function getResponse()

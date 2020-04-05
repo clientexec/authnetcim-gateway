@@ -1,6 +1,7 @@
 <?php
 require_once('AuthnetCIM.class.php');
 require_once 'modules/admin/models/GatewayPlugin.php';
+require_once 'modules/billing/models/Invoice.php';
 require_once 'modules/billing/models/class.gateway.plugin.php';
 
 /**
@@ -10,62 +11,76 @@ class PluginAuthnetcim extends GatewayPlugin
 {
     function getVariables()
     {
-        $variables = array (
-            lang('Plugin Name') => array (
-                'type'          => 'hidden',
-                'description'   => lang('How CE sees this plugin ( not to be confused with the Signup Name )'),
-                'value'         => 'Authorize.Net CIM'
+        $variables = array(
+            lang('Plugin Name') => array(
+                'type'        => 'hidden',
+                'description' => lang('How CE sees this plugin ( not to be confused with the Signup Name )'),
+                'value'       => 'Authorize.Net CIM'
             ),
-            lang('Authorize.Net CIM API Login ID') => array (
-                'type'          => 'password',
-                'description'   => lang('Please enter your Authorize.Net CIM API Login ID here.'),
-                'value'         => ''
+            lang('Authorize.Net CIM API Login ID') => array(
+                'type'        => 'password',
+                'description' => lang('Please enter your Authorize.Net CIM API Login ID here.'),
+                'value'       => ''
             ),
-            lang('Authorize.Net CIM Transaction Key') => array (
-                'type'          => 'password',
-                'description'   => lang('Please enter your Authorize.Net CIM Transaction Key here.'),
-                'value'         => ''
+            lang('Authorize.Net CIM Transaction Key') => array(
+                'type'        => 'password',
+                'description' => lang('Please enter your Authorize.Net CIM Transaction Key here.'),
+                'value'       => ''
             ),
-            lang('Authorize.Net CIM Validation Mode') => array (
-                'type'          => 'options',
-                'description'   => lang('Indicates the processing mode for the request.'),
-                'options'       => array(
-                    'liveMode'  => lang('Live Mode'),
-                    'testMode'  => lang('Test Mode')
-                )
+            lang('Authorize.Net CIM Test Mode') => array(
+                'type'        => 'yesno',
+                'description' => lang('Select YES if you want to use Authorize.Net CIM testing server, so no actual monetary transactions are made.'),
+                'value'       => '0'
             ),
-            lang('Authorize.Net CIM Test Mode') => array (
-                'type'          => 'yesno',
-                'description'   => lang('Select YES if you want to use Authorize.Net CIM testing server, so no actual monetary transactions are made.'),
-                'value'         => '0'
+            lang('Invoice After Signup') => array(
+                'type'        => 'yesno',
+                'description' => lang('Select YES if you want an invoice sent to the customer after signup is complete.'),
+                'value'       => '1'
             ),
-            lang('Invoice After Signup') => array (
-                'type'          => 'yesno',
-                'description'   => lang('Select YES if you want an invoice sent to the customer after signup is complete.'),
-                'value'         => '1'
+            lang('Signup Name') => array(
+                'type'        => 'text',
+                'description' => lang('Select the name to display in the signup process for this payment type. Example: eCheck or Credit Card.'),
+                'value'       => 'Authorize.Net CIM'
             ),
-            lang('Signup Name') => array (
-                'type'          => 'text',
-                'description'   => lang('Select the name to display in the signup process for this payment type. Example: eCheck or Credit Card.'),
-                'value'         => 'Authorize.Net CIM'
+            lang('Auto Payment') => array(
+                'type'        => 'hidden',
+                'description' => lang('No description'),
+                'value'       => '1'
             ),
-            lang('Auto Payment') => array (
-                'type'          => 'hidden',
-                'description'   => lang('No description'),
-                'value'         => '1'
+            lang('CC Stored Outside') => array(
+                'type'        => 'hidden',
+                'description' => lang('If this plugin is Auto Payment, is Credit Card stored outside of Clientexec? 1 = YES, 0 = NO'),
+                'value'       => '1'
             ),
-            lang('Dummy Plugin') => array (
-                'type'          => 'hidden',
-                'description'   => lang('1 = Only used to specify a billing type for a customer. 0 = full fledged plugin requiring complete functions'),
-                'value'         => '0'
+            lang('Billing Profile ID') => array(
+                'type'        => 'hidden',
+                'description' => lang('Is this plugin storing a Billing-Profile-ID? 1 = YES, 0 = NO'),
+                'value'       => '1'
+            ),
+            lang('Iframe Configuration') => array(
+                'type'        => 'hidden',
+                'description' => lang('Parameters to be used in the iframe when loaded, like: width, height, scrolling, frameborder'),
+                'value'       => 'width="100%" height="600" scrolling="auto" frameborder="0"'
+            ),
+            lang('Dummy Plugin') => array(
+                'type'        => 'hidden',
+                'description' => lang('1 = Only used to specify a billing type for a customer. 0 = full fledged plugin requiring complete functions'),
+                'value'       => '0'
+            ),
+            lang('Update Gateway') => array(
+                'type'        => 'hidden',
+                'description' => lang('1 = Create, update or remove Gateway customer information through the function UpdateGateway when customer choose to use this gateway, customer profile is updated, customer is deleted or customer status is changed. 0 = Do nothing.'),
+                'value'       => '1'
             )
         );
+
         return $variables;
     }
 
     function credit($params)
     {
         $params['refund'] = true;
+
         return $this->autopayment($params);
     }
 
@@ -82,36 +97,29 @@ class PluginAuthnetcim extends GatewayPlugin
         if (isset($params['refund']) && $params['refund']) {
             $isRefund = true;
             $cPlugin->setAction('refund');
-        }else{
+        } else {
             $isRefund = false;
             $cPlugin->setAction('charge');
         }
 
-        // The idea was to redirect the customer to create his profile in Authorize.net CIM
-        // However, it is causing more troubles than anything else:
-        // - The redirection is done making use of an error posted in the step 3
-        // - After the redirection, the customer can fill his profile, and then go back to order complete, but will be really without doing the send_account_creation_email
-        // - At the end, the invoice continues unpaid
-        // So, I have found it is better to try to charge the customer even when not having an Authorize.net CIM account.
-        // It leads him to his invoice and with a more clear error message that will lead him to create his Authorize.net CIM account, etc.
-        /*
-        if($params['isSignup']){
-            return $this->ShowURL($params);
-        }
-        */
-
         //Create customer Authnet CIM profile transaction
         $customerProfile = $this->createCustomerProfileTransaction($params, $isRefund);
-        if($customerProfile['error']){
+
+        if (isset($customerProfile['FORM'])) {
+            return $customerProfile;
+        } elseif ($customerProfile['error']) {
             $cPlugin->PaymentRejected($this->user->lang("There was an error performing this operation.").' '.$customerProfile['detail']);
+
             return $this->user->lang("There was an error performing this operation.").' '.$customerProfile['detail'];
-        }else{
-            if($isRefund){
+        } else {
+            if ($isRefund) {
                 $cPlugin->PaymentAccepted($customerProfile['amount'], "Authorize.Net CIM refund of {$customerProfile['amount']} was successfully processed.", $customerProfile['transaction_ID']);
+
                 return array('AMOUNT' => $customerProfile['amount']);
-            }else{
+            } else {
                 $cPlugin->setTransactionID($customerProfile['transaction_ID']);
                 $cPlugin->PaymentAccepted($customerProfile['amount'], "Authorize.Net CIM payment of {$customerProfile['amount']} was accepted. Approval code: {$customerProfile['approval_code']}", $customerProfile['transaction_ID']);
+
                 return '';
             }
         }
@@ -121,13 +129,99 @@ class PluginAuthnetcim extends GatewayPlugin
     function createFullCustomerProfile($params)
     {
         $customerProfile = $this->createCustomerProfile($params);
-        if($customerProfile['error']){
+
+        if ($customerProfile['error']) {
             return $customerProfile;
         }
+
         $params['Billing-Profile-ID'] = $customerProfile['profile_id'];
         $customerProfile = $this->createCustomerPaymentProfile($params);
 
         return $customerProfile;
+    }
+
+    function UpdateGateway($params)
+    {
+        switch ($params['Action']) {
+            case 'update':  // When updating customer profile or changing to use this gateway
+                $statusAliasGateway = StatusAliasGateway::getInstance($this->user);
+
+                if (in_array($params['Status'], $statusAliasGateway->getUserStatusIdsFor(array(USER_STATUS_INACTIVE, USER_STATUS_CANCELLED, USER_STATUS_FRAUD)))) {
+                    $this->CustomerRemove($params);
+                }
+
+                break;
+            case 'delete':  // When deleting the customer, changing to use another gateway, or updating the Credit Card
+                $this->CustomerRemove($params);
+
+                break;
+        }
+    }
+
+    function CustomerRemove($params)
+    {
+        try {
+            require_once 'modules/clients/models/Client_EventLog.php';
+
+            $profile_id = '';
+            $Billing_Profile_ID = '';
+            $profile_id_array = array();
+            $user = new User($params['User ID']);
+
+            if ($user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID) && $Billing_Profile_ID != '') {
+                $profile_id_array = unserialize($Billing_Profile_ID);
+
+                if (is_array($profile_id_array) && isset($profile_id_array[basename(dirname(__FILE__))])) {
+                    $profile_id = $profile_id_array[basename(dirname(__FILE__))];
+                }
+            }
+
+            if ($profile_id != '') {
+                //Add here code to remove the client account from the gateway
+                $deleted = true;
+
+                if ($deleted == true) {
+                    if (is_array($profile_id_array)) {
+                        unset($profile_id_array[basename(dirname(__FILE__))]);
+                    } else {
+                        $profile_id_array = array();
+                    }
+
+                    $user->updateCustomTag('Billing-Profile-ID', serialize($profile_id_array));
+                    $user->save();
+
+                    $eventLog = Client_EventLog::newInstance(false, $user->getId(), $user->getId());
+                    $eventLog->setSubject($this->user->getId());
+                    $eventLog->setAction(CLIENT_EVENTLOG_DELETEDBILLINGPROFILEID);
+                    $params = array(
+                        'paymenttype' => $this->settings->get("plugin_".basename(dirname(__FILE__))."_Plugin Name"),
+                        'profile_id' => $profile_id
+                    );
+                    $eventLog->setParams(serialize($params));
+                    $eventLog->save();
+
+                    return array(
+                        'error'      => false,
+                        'profile_id' => $profile_id
+                    );
+                } else {
+                    return array(
+                        'error'  => true,
+                        'detail' => $this->user->lang("There was an error performing this operation.")
+                    );
+                }
+            } else {
+                return array(
+                    'error'  => true,
+                    'detail' => $this->user->lang("There was an error performing this operation.")." ".$this->user->lang("profile_id is empty.")
+                );
+            }
+        } catch (Exception $e) {
+            return array(
+                'error'  => true,
+                'detail' => $this->user->lang("There was an error performing this operation.")." ".$e->getMessage()
+            );
+        }
     }
 
     // Create customer Authnet CIM profile
@@ -140,46 +234,49 @@ class PluginAuthnetcim extends GatewayPlugin
 
         //Authorize.net CIM Credentials from CE plugin
         $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
-        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $transactionKey = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
-        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+        $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
         // Create the profile
-        try{
-            $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+        try {
+            $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
             $cim->setParameter('email', $email_address);
             $cim->setParameter('description', $description);
             $cim->setParameter('merchantCustomerId', $customer_id);
             $cim->createCustomerProfile();
 
             // Get the profile ID returned from the request. Also if fails because of a duplicate record already exists.
-            if($cim->isSuccessful() || $cim->getCode() == 'E00039'){
+            if ($cim->isSuccessful() || $cim->getCode() == 'E00039') {
                 $profile_id = $cim->getProfileID();
                 $Billing_Profile_ID = '';
                 $profile_id_array = array();
                 $user = new User($params['CustomerID']);
-                if($user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID) && $Billing_Profile_ID != ''){
+
+                if ($user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID) && $Billing_Profile_ID != '') {
                     $profile_id_array = unserialize($Billing_Profile_ID);
                 }
-                if(!is_array($profile_id_array)){
+
+                if (!is_array($profile_id_array)) {
                     $profile_id_array = array();
                 }
-                $profile_id_array['authnetcim'] = $profile_id;
+
+                $profile_id_array[basename(dirname(__FILE__))] = $profile_id;
                 $user->updateCustomTag('Billing-Profile-ID', serialize($profile_id_array));
                 $user->save();
                 $params['Billing-Profile-ID'] = $profile_id;
 
                 return $this->createCustomerShippingAddress($params);
-            }else{
+            } else {
                 return array(
                     'error'  => true,
                     'detail' => $cim->getResponseSummary()
                 );
             }
-        }catch(AuthnetCIMException $e){
+        } catch (AuthnetCIMException $e) {
             return array(
                 'error'  => true,
-                'detail' => $e
+                'detail' => $e->getMessage()
             );
         }
     }
@@ -187,55 +284,94 @@ class PluginAuthnetcim extends GatewayPlugin
     // Create customer Authnet CIM payment profile
     function createCustomerPaymentProfile($params)
     {
-        if(!isset($params['Billing-Profile-ID'])){
+        if (!isset($params['Billing-Profile-ID'])) {
             // Get customer Authnet CIM profile
             $customerProfile = $this->getCustomerProfile($params);
-            if($customerProfile['error']){
+
+            if ($customerProfile['error']) {
                 return $customerProfile;
             }
+
             $params['Billing-Profile-ID'] = $customerProfile['profile_id'];
         }
 
         //Authorize.net CIM Credentials from CE plugin
         $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
-        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $transactionKey = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
-        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+        $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
-        try{
-            $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+        try {
+            $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
             $cim->setParameter('customerProfileId', $params['Billing-Profile-ID']);
-            if($params['userFirstName'] != '') $cim->setParameter('billToFirstName', $params['userFirstName']);
-            if($params['userLastName'] != '') $cim->setParameter('billToLastName', $params['userLastName']);
-            if($params['userOrganization'] != '') $cim->setParameter('billToCompany', $params['userOrganization']);
-            if($params['userAddress'] != '') $cim->setParameter('billToAddress', $params['userAddress']);
-            if($params['userCity'] != '') $cim->setParameter('billToCity', $params['userCity']);
-            if($params['userState'] != '') $cim->setParameter('billToState', $params['userState']);
-            if($params['userZipcode'] != '') $cim->setParameter('billToZip', $params['userZipcode']);
-            if($params['userCountry'] != '') $cim->setParameter('billToCountry', $params['userCountry']);
-            if($params['userPhone'] != '') $cim->setParameter('billToPhoneNumber', $params['userPhone']);
-            if($params['userPhone'] != '') $cim->setParameter('billToFaxNumber', $params['userPhone']);
-            if($params['userCCNumber'] != '') $cim->setParameter('cardNumber', $params['userCCNumber']);
-            if($params['cc_exp_year'] != '' && $params['cc_exp_month'] != '') $cim->setParameter('expirationDate', $params['cc_exp_year'].'-'.$params['cc_exp_month']);
+
+            if ($params['userFirstName'] != '') {
+                $cim->setParameter('billToFirstName', $params['userFirstName']);
+            }
+
+            if ($params['userLastName'] != '') {
+                $cim->setParameter('billToLastName', $params['userLastName']);
+            }
+
+            if ($params['userOrganization'] != '') {
+                $cim->setParameter('billToCompany', $params['userOrganization']);
+            }
+
+            if ($params['userAddress'] != '') {
+                $cim->setParameter('billToAddress', $params['userAddress']);
+            }
+
+            if ($params['userCity'] != '') {
+                $cim->setParameter('billToCity', $params['userCity']);
+            }
+
+            if ($params['userState'] != '') {
+                $cim->setParameter('billToState', $params['userState']);
+            }
+
+            if ($params['userZipcode'] != '') {
+                $cim->setParameter('billToZip', $params['userZipcode']);
+            }
+
+            if ($params['userCountry'] != '') {
+                $cim->setParameter('billToCountry', $params['userCountry']);
+            }
+
+            if ($params['userPhone'] != '') {
+                $cim->setParameter('billToPhoneNumber', $params['userPhone']);
+            }
+
+            if ($params['userPhone'] != '') {
+                $cim->setParameter('billToFaxNumber', $params['userPhone']);
+            }
+
+            if ($params['userCCNumber'] != '') {
+                $cim->setParameter('cardNumber', $params['userCCNumber']);
+            }
+
+            if ($params['cc_exp_year'] != '' && $params['cc_exp_month'] != '') {
+                $cim->setParameter('expirationDate', $params['cc_exp_year'].'-'.$params['cc_exp_month']);
+            }
+
             $cim->createCustomerPaymentProfile();
 
-            if($cim->isSuccessful() || $cim->getCode() == 'E00039'){
+            if ($cim->isSuccessful() || $cim->getCode() == 'E00039') {
                 return array(
                     'error'               => false,
                     'profile_id'          => $cim->getProfileID(),
                     'payment_profile_id'  => $cim->getPaymentProfileId(),
                     'shipping_profile_id' => $cim->getCustomerAddressId()
                 );
-            }else{
+            } else {
                 return array(
                     'error'  => true,
                     'detail' => $cim->getResponseSummary()
                 );
             }
-        }catch(AuthnetCIMException $e){
+        } catch (AuthnetCIMException $e) {
             return array(
                 'error'  => true,
-                'detail' => $e
+                'detail' => $e->getMessage()
             );
         }
     }
@@ -243,53 +379,86 @@ class PluginAuthnetcim extends GatewayPlugin
     // Create customer Authnet CIM shipping address
     function createCustomerShippingAddress($params)
     {
-        if(!isset($params['Billing-Profile-ID'])){
+        if (!isset($params['Billing-Profile-ID'])) {
             // Get customer Authnet CIM profile
             $customerProfile = $this->getCustomerProfile($params);
-            if($customerProfile['error']){
+
+            if ($customerProfile['error']) {
                 return $customerProfile;
             }
+
             $params['Billing-Profile-ID'] = $customerProfile['profile_id'];
         }
 
         //Authorize.net CIM Credentials from CE plugin
         $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
-        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $transactionKey = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
-        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+        $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
-        try{
-            $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+        try {
+            $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
             $cim->setParameter('customerProfileId', $params['Billing-Profile-ID']);
-            if($params['userFirstName'] != '') $cim->setParameter('shipToFirstName', $params['userFirstName']);
-            if($params['userLastName'] != '') $cim->setParameter('shipToLastName', $params['userLastName']);
-            if($params['userOrganization'] != '') $cim->setParameter('shipToCompany', $params['userOrganization']);
-            if($params['userAddress'] != '') $cim->setParameter('shipToAddress', $params['userAddress']);
-            if($params['userCity'] != '') $cim->setParameter('shipToCity', $params['userCity']);
-            if($params['userState'] != '') $cim->setParameter('shipToState', $params['userState']);
-            if($params['userZipcode'] != '') $cim->setParameter('shipToZip', $params['userZipcode']);
-            if($params['userCountry'] != '') $cim->setParameter('shipToCountry', $params['userCountry']);
-            if($params['userPhone'] != '') $cim->setParameter('shipToPhoneNumber', $params['userPhone']);
-            if($params['userPhone'] != '') $cim->setParameter('shipToFaxNumber', $params['userPhone']);
+
+            if ($params['userFirstName'] != '') {
+                $cim->setParameter('shipToFirstName', $params['userFirstName']);
+            }
+
+            if ($params['userLastName'] != '') {
+                $cim->setParameter('shipToLastName', $params['userLastName']);
+            }
+
+            if ($params['userOrganization'] != '') {
+                $cim->setParameter('shipToCompany', $params['userOrganization']);
+            }
+
+            if ($params['userAddress'] != '') {
+                $cim->setParameter('shipToAddress', $params['userAddress']);
+            }
+
+            if ($params['userCity'] != '') {
+                $cim->setParameter('shipToCity', $params['userCity']);
+            }
+
+            if ($params['userState'] != '') {
+                $cim->setParameter('shipToState', $params['userState']);
+            }
+
+            if ($params['userZipcode'] != '') {
+                $cim->setParameter('shipToZip', $params['userZipcode']);
+            }
+
+            if ($params['userCountry'] != '') {
+                $cim->setParameter('shipToCountry', $params['userCountry']);
+            }
+
+            if ($params['userPhone'] != '') {
+                $cim->setParameter('shipToPhoneNumber', $params['userPhone']);
+            }
+
+            if ($params['userPhone'] != '') {
+                $cim->setParameter('shipToFaxNumber', $params['userPhone']);
+            }
+
             $cim->createCustomerShippingAddress();
 
-            if($cim->isSuccessful() || $cim->getCode() == 'E00039'){
+            if ($cim->isSuccessful() || $cim->getCode() == 'E00039') {
                 return array(
                     'error'               => false,
                     'profile_id'          => $cim->getProfileID(),
                     'payment_profile_id'  => $cim->getPaymentProfileId(),
                     'shipping_profile_id' => $cim->getCustomerAddressId()
                 );
-            }else{
+            } else {
                 return array(
                     'error'  => true,
                     'detail' => $cim->getResponseSummary()
                 );
             }
-        }catch(AuthnetCIMException $e){
+        } catch (AuthnetCIMException $e) {
             return array(
                 'error'  => true,
-                'detail' => $e
+                'detail' => $e->getMessage()
             );
         }
     }
@@ -297,43 +466,53 @@ class PluginAuthnetcim extends GatewayPlugin
     //Get customer Authnet CIM profile
     function getCustomerProfile($params)
     {
+        if (!isset($params['CustomerID']) && isset($params['userID'])) {
+            $params['CustomerID'] = $params['userID'];
+        }
+
         //Authorize.net CIM Credentials from CE plugin
         $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
-        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $transactionKey = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
-        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+        $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
         $profile_id == '';
         $Billing_Profile_ID = '';
         $profile_id_array = array();
         $user = new User($params['CustomerID']);
-        if($user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID) && $Billing_Profile_ID != ''){
+
+        if ($user->getCustomFieldsValue('Billing-Profile-ID', $Billing_Profile_ID) && $Billing_Profile_ID != '') {
             $profile_id_array = unserialize($Billing_Profile_ID);
-            if(is_array($profile_id_array) && isset($profile_id_array['authnetcim'])){
-                $profile_id = $profile_id_array['authnetcim'];
+
+            if (is_array($profile_id_array) && isset($profile_id_array[basename(dirname(__FILE__))])) {
+                $profile_id = $profile_id_array[basename(dirname(__FILE__))];
             }
         }
 
-        if($profile_id == ''){
+        if ($profile_id == '') {
             // Create or get customer Authnet CIM profile
             $customerProfile = $this->createCustomerProfile($params);
-            if($customerProfile['error']){
+
+            if ($customerProfile['error']) {
                 return $customerProfile;
-            }else{
+            } else {
                 $profile_id = $customerProfile['profile_id'];
             }
         }
 
-        try{
-            $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+        try {
+            $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
             $cim->setParameter('customerProfileId', $profile_id);
             $cim->getCustomerProfile();
-            if($cim->isSuccessful()){
+
+            if ($cim->isSuccessful()) {
                 $profile_id = $cim->getProfileID();
-                if(!is_array($profile_id_array)){
+
+                if (!is_array($profile_id_array)) {
                     $profile_id_array = array();
                 }
-                $profile_id_array['authnetcim'] = $profile_id;
+
+                $profile_id_array[basename(dirname(__FILE__))] = $profile_id;
                 $user->updateCustomTag('Billing-Profile-ID', serialize($profile_id_array));
                 $user->save();
 
@@ -343,14 +522,15 @@ class PluginAuthnetcim extends GatewayPlugin
                     'payment_profile_id'  => $cim->getPaymentProfileId(),
                     'shipping_profile_id' => $cim->getCustomerAddressId()
                 );
-            }else{
+            } else {
                 // If the profileID, paymentProfileId, or shippingAddressId for this request is not valid for this merchant, reset the id and try again.
-                if($cim->getCode() == 'E00040'){
-                    if(is_array($profile_id_array)){
-                        unset($profile_id_array['authnetcim']);
-                    }else{
+                if ($cim->getCode() == 'E00040') {
+                    if (is_array($profile_id_array)) {
+                        unset($profile_id_array[basename(dirname(__FILE__))]);
+                    } else {
                         $profile_id_array = array();
                     }
+
                     $user->updateCustomTag('Billing-Profile-ID', serialize($profile_id_array));
                     $user->save();
 
@@ -362,13 +542,12 @@ class PluginAuthnetcim extends GatewayPlugin
                     'detail' => $cim->getResponseSummary()
                 );
             }
-        }catch(AuthnetCIMException $e){
+        } catch (AuthnetCIMException $e) {
             return array(
                 'error'  => true,
-                'detail' => $e
+                'detail' => $e->getMessage()
             );
         }
-
     }
 
     //Validate customer Authnet CIM payment profile
@@ -376,48 +555,52 @@ class PluginAuthnetcim extends GatewayPlugin
     {
         //Get customer Authnet CIM profile
         $customerProfile = $this->getCustomerProfile($params);
-        if($customerProfile['error']){
+
+        if ($customerProfile['error']) {
             return $customerProfile;
         }
 
         //Authorize.net CIM Credentials from CE plugin
         $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
-        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $transactionKey = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
-        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+        $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
-        $validationMode = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Validation Mode');
-        if($validationMode == ''){
-            $validationMode = 'liveMode';
-        }
-
-        try{
+        try {
             //Validate customer payment profile
-            if($customerProfile['profile_id'] != '' && $customerProfile['payment_profile_id'] != '' && $customerProfile['shipping_profile_id'] != ''){
-                $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+            if ($customerProfile['profile_id'] != '' && $customerProfile['payment_profile_id'] != '' && $customerProfile['shipping_profile_id'] != '') {
+                $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
                 $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
                 $cim->setParameter('customerPaymentProfileId', $customerProfile['payment_profile_id']);
                 $cim->setParameter('customerShippingAddressId', $customerProfile['shipping_profile_id']);
-                $cim->setParameter('validationMode', $validationMode);
+                $cim->setParameter('validationMode', 'testMode');
                 $cim->validateCustomerPaymentProfile();
-                if($cim->isSuccessful()){
+
+                if ($cim->isSuccessful()) {
                     return $customerProfile;
-                }else{
+                } else {
                     return array(
                         'error'  => true,
                         'detail' => $cim->getResponseSummary()
                     );
                 }
-            }else{
-                return array(
-                    'error'  => true,
-                    'detail' => 'The customer do not have a customer Authnet CIM payment profile or shipping profile'
-                );
+            } else {
+                if ($params['isSignup']) {
+                    return array(
+                        'error' => false,
+                        'FORM'  => $this->useForm($params)
+                    );
+                } else {
+                    return array(
+                        'error'  => true,
+                        'detail' => 'The customer do not have a customer Authnet CIM payment profile or shipping profile'
+                    );
+                }
             }
-        }catch(AuthnetCIMException $e){
+        } catch (AuthnetCIMException $e) {
             return array(
                 'error'  => true,
-                'detail' => $e
+                'detail' => $e->getMessage()
             );
         }
     }
@@ -427,7 +610,8 @@ class PluginAuthnetcim extends GatewayPlugin
     {
         //Validate customer Authnet CIM payment profile
         $customerProfile = $this->validateCustomerPaymentProfile($params);
-        if($customerProfile['error']){
+
+        if ($customerProfile['error'] || isset($customerProfile['FORM'])) {
             return $customerProfile;
         }
 
@@ -437,22 +621,22 @@ class PluginAuthnetcim extends GatewayPlugin
 
         //Authorize.net CIM Credentials from CE plugin
         $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
-        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $transactionKey = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
-        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+        $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
-        try{
+        try {
             // Process the transaction
-            $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+            $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
             $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
             $cim->setParameter('customerPaymentProfileId', $customerProfile['payment_profile_id']);
             $cim->setParameter('customerShippingAddressId', $customerProfile['shipping_profile_id']);
             $cim->setParameter('amount', $amount);
 
-            if($isRefund){
+            if ($isRefund) {
                 $cim->setParameter('transId', $params['invoiceRefundTransactionId']);
                 $cim->createCustomerProfileTransaction('profileTransRefund');
-            }else{
+            } else {
                 $cim->setParameter('orderInvoiceNumber', true);
                 $cim->setParameter('invoiceNumber', $purchase_invoice_id);
                 $cim->setParameter('description', 'Invoice '.$purchase_invoice_id);
@@ -462,25 +646,32 @@ class PluginAuthnetcim extends GatewayPlugin
             // Get the payment or refund profile ID returned from the request
             $approval_code = '';
             $transaction_ID = '';
-            if($cim->isSuccessful()){
-                    return array(
-                        'error'          => false,
-                        'approval_code'  => $cim->getAuthCode(),
-                        'transaction_ID' => $cim->getTransactionID(),
-                        'amount'         => $amount
-                    );
-            }else{
+
+            if ($cim->isSuccessful()) {
+                return array(
+                    'error'          => false,
+                    'approval_code'  => $cim->getAuthCode(),
+                    'transaction_ID' => $cim->getTransactionID(),
+                    'amount'         => $amount
+                );
+            } else {
                 return array(
                     'error'  => true,
                     'detail' => $cim->getResponseSummary()
                 );
             }
-        }catch(AuthnetCIMException $e){
+        } catch (AuthnetCIMException $e) {
             return array(
                 'error'  => true,
-                'detail' => $e
+                'detail' => $e->getMessage()
             );
         }
+    }
+
+    function useForm($params)
+    {
+        echo $this->ShowURL($params);
+        exit;
     }
 
     function ShowURL($params)
@@ -488,7 +679,7 @@ class PluginAuthnetcim extends GatewayPlugin
         $tempUser = new User($params['CustomerID']);
 
         //Customer Information from CE
-        $params['userID']           = "CE" . $tempUser->getId();
+        $params['userID']           = "CE".$tempUser->getId();
         $params['userEmail']        = $tempUser->getEmail();
         $params['userFirstName']    = $tempUser->getFirstName();
         $params['userLastName']     = $tempUser->getLastName();
@@ -502,7 +693,8 @@ class PluginAuthnetcim extends GatewayPlugin
 
         // Get customer Authnet CIM profile
         $customerProfile = $this->getCustomerProfile($params);
-        if($customerProfile['error']){
+
+        if ($customerProfile['error']) {
             return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
                 <html xmlns="http://www.w3.org/1999/xhtml">
                     <head>
@@ -515,39 +707,46 @@ class PluginAuthnetcim extends GatewayPlugin
 
         //Authorize.net CIM Credentials from CE plugin
         $myapilogin = $this->settings->get('plugin_authnetcim_Authorize.Net CIM API Login ID');
-        $mYtRaNsaCTiOnKEy = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
+        $transactionKey = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Transaction Key');
         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
-        $USE_DEVELOPMENT_SERVER = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
+        $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
         //Need to check to see if user is coming from signup
         if ($params['isSignup']) {
-            // Actually handle the signup URL setting
-            if($this->settings->get('Signup Completion URL') != '') {
+            $clientExecURL = CE_Lib::getSoftwareURL();
+            $returnURL = mb_substr($clientExecURL, -1, 1) == '//' ? $clientExecURL."plugins/gateways/authnetcim/callback.php" : $clientExecURL."/plugins/gateways/authnetcim/callback.php";
+            $returnURL .= "?authnetcim_action=PayInvoice";
 
-                $returnURL = $this->settings->get('Signup Completion URL'). '?success=1';
-            }else{
-                $returnURL = $params["clientExecURL"]."/order.php?step=complete&pass=1";
+            $tempInvoice = new Invoice($params['invoiceNumber']);
+            $tInvoiceHash = $tempInvoice->generateInvoiceHash($params['invoiceNumber']);
+
+            if (!is_a($tInvoiceHash, 'CE_Error')) {
+                $returnURL .= "&ce_invoice_hash=".$tInvoiceHash;
+            } else {
+                $returnURL .= "&ce_invoice_hash="."WRONGHASH";
             }
+
             $hosted_Profile_Page_Border_Visible = 'true';
-        }else {
+        } else {
             $hosted_Profile_Page_Border_Visible = 'false';
             $returnURL = $params['returnURL'];
         }
-
 
         // Get the Hosted Profile Page
         $hosted_Profile_Return_Url_Text = 'Continue to confirmation page.';
         $hosted_Profile_Card_Code_Required = 'true';
         $hosted_Profile_Billing_Address_Required = 'true';
 
-        try{
-            $cim = new AuthnetCIM($myapilogin, $mYtRaNsaCTiOnKEy, $USE_DEVELOPMENT_SERVER);
+        try {
+            $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
             $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
+
             if ($params['isSignup']) {
                 $cim->setParameter('hostedProfileReturnUrl', $returnURL);
-            }else{
+            } else {
                 $cim->setParameter('hostedProfileIFrameCommunicatorUrl', $returnURL);
             }
+
             $cim->setParameter('hostedProfileReturnUrlText', $hosted_Profile_Return_Url_Text);
             $cim->setParameter('hostedProfilePageBorderVisible', $hosted_Profile_Page_Border_Visible);
             $cim->setParameter('hostedProfileCardCodeRequired', $hosted_Profile_Card_Code_Required);
@@ -555,12 +754,13 @@ class PluginAuthnetcim extends GatewayPlugin
             $cim->getHostedProfilePage();
 
             // Get the token for the profile
-            if($cim->isSuccessful()){
+            if ($cim->isSuccessful()) {
                 $profile_token = $cim->getProfileToken();
+
                 return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
                     <html xmlns="http://www.w3.org/1999/xhtml">
                         <body>
-                            <form id="formAuthorizeNetPage" method="post" action="https://'.(($sandbox)? 'test' : 'secure').'.authorize.net/profile/manage">
+                            <form id="formAuthorizeNetPage" method="post" action="https://'.(($sandbox)? 'test' : 'accept').'.authorize.net/customer/manage">
                                 <input type="hidden" name="token" value="'.$profile_token.'"/>
                             </form>
                             <script type="text/javascript">
@@ -568,7 +768,7 @@ class PluginAuthnetcim extends GatewayPlugin
                             </script>
                         </body>
                     </html>';
-            }else{
+            } else {
                 return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
                     <html xmlns="http://www.w3.org/1999/xhtml">
                         <head>
@@ -578,14 +778,14 @@ class PluginAuthnetcim extends GatewayPlugin
                         <body>'.$cim->getResponseSummary().'</body>
                     </html>';
             }
-        }catch(AuthnetCIMException $e){
+        } catch (AuthnetCIMException $e) {
             return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
                 <html xmlns="http://www.w3.org/1999/xhtml">
                     <head>
                         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
                         <title>Untitled Document</title>
                     </head>
-                    <body>'.$e.'</body>
+                    <body>'.$e->getMessage().'</body>
                 </html>';
         }
     }
