@@ -77,14 +77,19 @@ class PluginAuthnetcimCallback extends PluginCallback
                                     try {
                                         //Validate customer payment profile
                                         if ($customerProfile['profile_id'] != '' && $customerProfile['payment_profile_id'] != '' && $customerProfile['shipping_profile_id'] != '') {
-                                            $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
-                                            $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
-                                            $cim->setParameter('customerPaymentProfileId', $customerProfile['payment_profile_id']);
-                                            $cim->setParameter('customerShippingAddressId', $customerProfile['shipping_profile_id']);
-                                            $cim->setParameter('validationMode', 'testMode');
-                                            $cim->validateCustomerPaymentProfile();
+                                            if ($this->settings->get('plugin_authnetcim_Disable validate client Authnet CIM payment profile')) {
+                                                $valid = true;
+                                            } else {
+                                                $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
+                                                $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
+                                                $cim->setParameter('customerPaymentProfileId', $customerProfile['payment_profile_id']);
+                                                $cim->setParameter('customerShippingAddressId', $customerProfile['shipping_profile_id']);
+                                                $cim->setParameter('validationMode', 'testMode');
+                                                $cim->validateCustomerPaymentProfile();
+                                                $valid = $cim->isSuccessful();
+                                            }
 
-                                            if ($cim->isSuccessful()) {
+                                            if ($valid) {
                                                 //Invoice Information from CE
                                                 $amount = sprintf("%01.2f", round($tInvoiceTotal, 2));
                                                 $purchase_invoice_id = $tInvoiceId;

@@ -32,9 +32,14 @@ class PluginAuthnetcim extends GatewayPlugin
                 'description' => lang('Select YES if you want to use Authorize.Net CIM testing server, so no actual monetary transactions are made.'),
                 'value'       => '0'
             ),
+            lang('Disable validate client Authnet CIM payment profile') => array(
+                'type'        => 'yesno',
+                'description' => lang('Select YES if you want to avoid Authorize.Net CIM to validate the client Authnet CIM payment profile on every transaction. This will also stop Authorize.Net CIM sending some emails about validation transactions.'),
+                'value'       => '0'
+            ),
             lang('Invoice After Signup') => array(
                 'type'        => 'yesno',
-                'description' => lang('Select YES if you want an invoice sent to the customer after signup is complete.'),
+                'description' => lang('Select YES if you want an invoice sent to the client after signup is complete.'),
                 'value'       => '1'
             ),
             lang('Signup Name') => array(
@@ -64,12 +69,12 @@ class PluginAuthnetcim extends GatewayPlugin
             ),
             lang('Dummy Plugin') => array(
                 'type'        => 'hidden',
-                'description' => lang('1 = Only used to specify a billing type for a customer. 0 = full fledged plugin requiring complete functions'),
+                'description' => lang('1 = Only used to specify a billing type for a client. 0 = full fledged plugin requiring complete functions'),
                 'value'       => '0'
             ),
             lang('Update Gateway') => array(
                 'type'        => 'hidden',
-                'description' => lang('1 = Create, update or remove Gateway customer information through the function UpdateGateway when customer choose to use this gateway, customer profile is updated, customer is deleted or customer status is changed. 0 = Do nothing.'),
+                'description' => lang('1 = Create, update or remove Gateway client information through the function UpdateGateway when client choose to use this gateway, client profile is updated, client is deleted or client status is changed. 0 = Do nothing.'),
                 'value'       => '1'
             )
         );
@@ -569,14 +574,19 @@ class PluginAuthnetcim extends GatewayPlugin
         try {
             //Validate customer payment profile
             if ($customerProfile['profile_id'] != '' && $customerProfile['payment_profile_id'] != '' && $customerProfile['shipping_profile_id'] != '') {
-                $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
-                $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
-                $cim->setParameter('customerPaymentProfileId', $customerProfile['payment_profile_id']);
-                $cim->setParameter('customerShippingAddressId', $customerProfile['shipping_profile_id']);
-                $cim->setParameter('validationMode', 'testMode');
-                $cim->validateCustomerPaymentProfile();
+                if ($this->settings->get('plugin_authnetcim_Disable validate client Authnet CIM payment profile')) {
+                    $valid = true;
+                } else {
+                    $cim = new AuthnetCIM($myapilogin, $transactionKey, $serverToUse);
+                    $cim->setParameter('customerProfileId', $customerProfile['profile_id']);
+                    $cim->setParameter('customerPaymentProfileId', $customerProfile['payment_profile_id']);
+                    $cim->setParameter('customerShippingAddressId', $customerProfile['shipping_profile_id']);
+                    $cim->setParameter('validationMode', 'testMode');
+                    $cim->validateCustomerPaymentProfile();
+                    $valid = $cim->isSuccessful();
+                }
 
-                if ($cim->isSuccessful()) {
+                if ($valid) {
                     return $customerProfile;
                 } else {
                     return array(
