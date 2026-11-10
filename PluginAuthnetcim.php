@@ -481,7 +481,7 @@ class PluginAuthnetcim extends GatewayPlugin
         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
         $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
-        $profile_id == '';
+        $profile_id = '';
         $Billing_Profile_ID = '';
         $profile_id_array = array();
         $user = new User($params['CustomerID']);
@@ -573,7 +573,9 @@ class PluginAuthnetcim extends GatewayPlugin
 
         try {
             //Validate customer payment profile
-            if ($customerProfile['profile_id'] != '' && $customerProfile['payment_profile_id'] != '' && $customerProfile['shipping_profile_id'] != '') {
+            if (!empty($customerProfile['profile_id'])
+              && !empty($customerProfile['payment_profile_id'])
+              && !empty($customerProfile['shipping_profile_id'])) {
                 if ($this->settings->get('plugin_authnetcim_Disable validate client Authnet CIM payment profile')) {
                     $valid = true;
                 } else {

@@ -112,7 +112,10 @@ class AuthnetCIM
     	curl_setopt($this->ch, CURLOPT_HEADER, 0);
     	curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->xml);
     	curl_setopt($this->ch, CURLOPT_POST, 1);
-    	curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, 2);
+        $caPathOrFile = \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath();
+        curl_setopt($this->ch, is_dir($caPathOrFile) ? CURLOPT_CAPATH : CURLOPT_CAINFO, $caPathOrFile);
         $this->response = curl_exec($this->ch);
         if ($this->response) {
             $this->parseResults();

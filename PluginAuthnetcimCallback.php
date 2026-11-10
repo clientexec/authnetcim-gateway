@@ -7,6 +7,11 @@ class PluginAuthnetcimCallback extends PluginCallback
 {
     function processCallback()
     {
+        // Execute PluginCallback::processCallback() first
+        if (!parent::processCallback()) {
+            return;
+        }
+
         if (isset($_GET['authnetcim_action']) && !empty($_GET['authnetcim_action'])) {
             // Actually handle the signup URL setting
             if ($this->settings->get('Signup Completion URL') != '') {
@@ -48,7 +53,7 @@ class PluginAuthnetcimCallback extends PluginCallback
                         $sandbox = $this->settings->get('plugin_authnetcim_Authorize.Net CIM Test Mode');
                         $serverToUse = ($sandbox)? AuthnetCIM::USE_DEVELOPMENT_SERVER : AuthnetCIM::USE_PRODUCTION_SERVER;
 
-                        $profile_id == '';
+                        $profile_id = '';
                         $Billing_Profile_ID = '';
                         $profile_id_array = array();
                         $user = new User($tempInvoice->getUserID());
@@ -76,7 +81,9 @@ class PluginAuthnetcimCallback extends PluginCallback
 
                                     try {
                                         //Validate customer payment profile
-                                        if ($customerProfile['profile_id'] != '' && $customerProfile['payment_profile_id'] != '' && $customerProfile['shipping_profile_id'] != '') {
+                                        if (!empty($customerProfile['profile_id'])
+                                          && !empty($customerProfile['payment_profile_id'])
+                                          && !empty($customerProfile['shipping_profile_id'])) {
                                             if ($this->settings->get('plugin_authnetcim_Disable validate client Authnet CIM payment profile')) {
                                                 $valid = true;
                                             } else {
